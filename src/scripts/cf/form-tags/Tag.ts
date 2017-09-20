@@ -43,6 +43,7 @@ namespace cf {
 		eventTarget: EventDispatcher;
 		flowManager: FlowManager;
 		hasConditions():boolean;
+		hasOrConditions():boolean;
 		hasConditionsFor(tagName: string):boolean;
 		checkConditionalAndIsValid():boolean;
 
@@ -76,6 +77,7 @@ namespace cf {
 		private pattern: RegExp;
 		private changeCallback: () => void;
 		private conditionalTags: Array<ConditionalValue>;
+		private orConditionalTags: Array<ConditionalValue>;
 
 		// input placeholder text, this is for the UserInput and not the tag it self.
 		protected _inputPlaceholder: string;
@@ -330,6 +332,7 @@ namespace cf {
 			this.questions = null;
 			this.findAndSetQuestions();
 			this.findConditionalAttributes();
+			this.findOrConditionalAttributes();
 		}
 
 		public hasConditionsFor(tagName: string):boolean{
@@ -342,7 +345,13 @@ namespace cf {
 				if("cf-conditional-"+tagName === condition.key){
 					return true;
 				}
-				
+			}
+			
+			for (var i = 0; i < this.orConditionalTags.length; i++) {
+				var condition: ConditionalValue = this.orConditionalTags[i];
+				if("cf-or-conditional-"+tagName === condition.key){
+					return true;
+				}
 			}
 
 			return false;
@@ -351,6 +360,11 @@ namespace cf {
 		public hasConditions():boolean{
 			return this.conditionalTags && this.conditionalTags.length > 0;
 		}
+		
+		public hasOrConditions():boolean{
+			return this.orConditionalTags && this.orConditionalTags.length > 0;
+		}
+		
 
 		/**
 		* @name checkConditionalAndIsValid
@@ -362,6 +376,10 @@ namespace cf {
 			// if contains attribute, cf-conditional{-name} then check for conditional value across tags
 			if(this.hasConditions()){
 				return this.flowManager.areConditionsInFlowFullfilled(this, this.conditionalTags);
+			}
+
+			if(this.hasOrConditions()){
+				return this.flowManager.areOrConditionsInFlowFullfilled(this, this.orConditionalTags);
 			}
 
 			// else return true, as no conditional means uncomplicated and happy tag
@@ -442,6 +460,45 @@ namespace cf {
 							}
 
 							this.conditionalTags.push(<ConditionalValue>{
+								key: attr.name,
+								conditionals: _conditionals
+							});
+						}
+					}
+				}
+			}
+		}
+
+		/**
+		* @name findOrConditionalAttributes
+		* look for "or" conditional attributes and map them
+		*/
+		protected findOrConditionalAttributes(){
+			const keys: any = this.domElement.attributes;
+			if(keys.length > 0){
+				this.orConditionalTags = [];
+				
+				for (var key in keys) {
+					if (keys.hasOwnProperty(key)) {	
+						let attr: any = keys[key];
+						if(attr && attr.name && attr.name.indexOf("cf-or-conditional") !== -1){
+							console.log('conditional found:'+key+'|'+attr.name);
+							// conditional found
+							let _conditionals: Array<string | RegExp> = [];
+							let conditionalsFromAttribute: Array<string> = attr.value.split("||");
+
+							for (var i = 0; i < conditionalsFromAttribute.length; i++) {
+								var _conditional: string = conditionalsFromAttribute[i];
+								try {
+									_conditionals.push(new RegExp(_conditional));
+								} catch(e) {
+								}
+
+								_conditionals.push(_conditional);
+							}
+
+							//console.log(JSON.stringify('conditionals:'+_conditionals));
+							this.orConditionalTags.push(<ConditionalValue>{
 								key: attr.name,
 								conditionals: _conditionals
 							});

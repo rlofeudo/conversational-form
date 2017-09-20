@@ -192,7 +192,16 @@ namespace cf {
 					return true;
 				}
 			}
-
+			return false;
+		}
+		
+		public hasOrConditions():boolean{
+			for (let i = 0; i < this.elements.length; i++) {
+				let element: ITag = <ITag>this.elements[i];
+				if(element.hasOrConditions()){
+					return true;
+				}
+			}
 			return false;
 		}
 

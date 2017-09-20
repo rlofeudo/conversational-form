@@ -198,6 +198,36 @@ namespace cf {
 
 			return false;
 		}
+		
+		public areOrConditionsInFlowFullfilled(tagWithConditions: ITag, tagOrConditions: Array<ConditionalValue> ): boolean{
+			if(!this.activeConditions){
+				// we don't use this (yet), it's only to keep track of active conditions
+				this.activeConditions = [];
+			}
+
+			let numConditionsFound: number = 0;
+			// find out if tagWithConditions fullfills conditions
+			for(var i = 0; i < this.tags.length; i++){
+				const tag: ITag | ITagGroup = this.tags[i];
+				if(tag !== tagWithConditions){
+					// check if tags are fullfilled
+					for (var j = 0; j < tagOrConditions.length; j++) {
+						let tagCondition: ConditionalValue = tagOrConditions[j];
+						if("cf-or-conditional-"+tag.name === tagCondition.key){
+							// key found, so check condition
+							const flowTagValue: string | string[] = typeof tag.value === "string" ? <string> (<ITag> tag).value : <string[]>(<ITagGroup> tag).value;
+							let areConditionsMeet: boolean = Tag.testConditions(flowTagValue, tagCondition);
+							if(areConditionsMeet){
+								this.activeConditions[tag.id || tag.name] = tagOrConditions;
+								return true;
+							}
+						}
+					}
+				}
+			}
+
+			return false;
+		}
 
 		public start(){
 			this.stopped = false;
